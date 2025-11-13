@@ -96,42 +96,13 @@ async def ping():
     print("ESP32 reached server")
     return {"status": "ok"}
 
-# ---------- LIST IMAGES ----------
-@app.get("/images")
-def list_images():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute("SELECT id, filename, timestamp, path, size_bytes, analysis_status FROM captures ORDER BY timestamp DESC LIMIT 50")
-    rows = [dict(r) for r in c.fetchall()]
-    conn.close()
-    return rows
-
-@app.get("/get_last_image")
-def get_latest_image():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute("""
-        SELECT path FROM captures ORDER BY timestamp DESC LIMIT 1
-              """)
-    row = c.fetchone()
-    conn.close()
-
-    if not row:
-        return "ERROR no db answer"
-    
-    path = row["path"]
-    ans = f"https://192.168.2.109:445/{path}"
-    return JSONResponse(content={"url": ans})
-
 @app.get("/get_last_image/{offset}")
 def get_latest_image(offset: int):
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("""
-        SELECT path FROM captures ORDER BY timestamp DESC LIMIT 1 OFFSET ?
+        SELECT path,timestamp FROM captures ORDER BY timestamp DESC LIMIT 1 OFFSET ?
               """,(offset,))
     row = c.fetchone()
     conn.close()
@@ -140,56 +111,10 @@ def get_latest_image(offset: int):
         return "ERROR no db answer"
     
     path = row["path"]
+    timestamp = row["timestamp"]
     ans = f"https://192.168.2.109:445/{path}"
-    return JSONResponse(content={"url": ans})
+    return JSONResponse(content={
+        "url": ans,
+        "timestamp": timestamp
+        })
     
-@app.get("/get_latest", response_class=HTMLResponse)
-def get_latest():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute("""
-        SELECT filename, path, timestamp
-        FROM captures
-        ORDER BY timestamp DESC LIMIT 1
-    """)
-    row = c.fetchone()
-    conn.close()
-
-    if not row:
-        return "<h3>No images yet</h3>"
-
-    filename = row["filename"]
-    full_path = row["path"]
-    url_path = "/" + full_path  # path usable in browser
-    timestamp = datetime.fromtimestamp(row["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
-
-    html = f"""
-    <html>
-    <head>
-        <title>Latest Image</title>
-        <meta http-equiv="refresh" content="60"> <!-- auto-refresh every 60s -->
-        <style>
-            body {{
-                background: #111;
-                color: #ddd;
-                text-align: center;
-                font-family: sans-serif;
-            }}
-            img {{
-                max-width: 90%;
-                height: auto;
-                margin-top: 20px;
-                border-radius: 10px;
-                box-shadow: 0 0 10px rgba(255,255,255,0.2);
-            }}
-        </style>
-    </head>
-    <body>
-        <h2>Latest capture</h2>
-        <p>{timestamp}</p>
-        <img src="{url_path}" alt="{filename}">
-    </body>
-    </html>
-    """
-    return HTMLResponse(content=html)

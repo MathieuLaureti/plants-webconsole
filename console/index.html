@@ -2,15 +2,29 @@
 <html lang="en">
     <script src="https://cdn.tailwindcss.com"></script>    
     <script>
-            tailwind.config = {
-                theme: {
-                    extend: {
-                        colors: {
-                            clifford: '#da373d',
-                        }
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        clifford: '#da373d',
+                        'bg-dark': 'oklch(0.1 0.025 247)',
+                        bg: 'oklch(0.15 0.025 247)',
+                        'bg-light': 'oklch(0.2 0.025 247)',
+                        text: 'oklch(0.96 0.05 247)',
+                        'text-muted': 'oklch(0.76 0.05 247)',
+                        highlight: 'oklch(0.5 0.05 247)',
+                        border: 'oklch(0.4 0.05 247)',
+                        'border-muted': 'oklch(0.3 0.05 247)',
+                        primary: 'oklch(0.76 0.1 247)',
+                        secondary: 'oklch(0.76 0.1 67)',
+                        danger: 'oklch(0.7 0.05 30)',
+                        warning: 'oklch(0.7 0.05 100)',
+                        success: 'oklch(0.7 0.05 160)',
+                        info: 'oklch(0.7 0.05 260)',
                     }
                 }
             }
+        }
     </script>
     <script src="index.js"></script>
     <script>
@@ -24,22 +38,16 @@
         <link rel="stylesheet" href="./style.css">
         <link rel="icon" href="./favicon.ico" type="image/x-icon">
     </head>
-    <body class="bg-black">
+    <body class="bg-bg-dark">
         <main >
             <div class="flex-col justify-center items-center ">
-                <section class="flex justify-center items-center bg-gray-800 py-4">
-                    <div class= "flex-row justify-items-center">
-                        <h1 class="text-4xl xl:font-Roboto-serif font-semibold bg-gray-900 py-2 px-8 text-gray-100">last Image</h1>
-                        <img id="last_image" src="https://placehold.co/600x400" class="m-4 max-h-[300px] max-w-[400px]">
-                    </div>
-                </section>
-                <section class="flex justify-center items-center bg-gray-800 py-4">
-                    <div class= "flex-row justify-items-center">
-                        <h1 class="text-4xl xl:font-Roboto-serif font-semibold bg-gray-900 py-2 px-8 text-gray-100">Slider</h1>
-                        <img id="last_image_offset" src="https://placehold.co/400x300" class="m-4 max-h-[300px] max-w-[400px]">
-                        <div>
-                            <button id="prev" class="bg-gray-900 px-2 py-1 rounded-xl text-white">prev</button>
-                            <button id="next" class="bg-gray-900 px-2 py-1 rounded-xl text-white">next</button>
+                <section class="flex justify-center items-center max-h-[600px] max-w-[900px] mx-auto py-4">
+                    <div class= "flex-row justify-items-center bg-bg">
+                        <h1 class="text-4xl xl:font-Roboto-serif font-semibold py-2 px-8 text-gray-100">Slider</h1>
+                        <img id="last_image_offset" src="https://placehold.co/400x300" class="m-4">
+                        <div class="flex-">
+                            <button id="prev" class="bg-gray-900 px-2 py-1 rounded-xl text-white w-6/12">prev</button>
+                            <button id="next" class="bg-gray-900 px-2 py-1 rounded-xl text-white w-6/12">next</button>
                         </div>
                     </div>
                 </section>
