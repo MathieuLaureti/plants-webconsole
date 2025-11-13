@@ -1,0 +1,4 @@
+certs/
+
+server/uploads/
+server/database.db

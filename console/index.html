@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+    <script src="https://cdn.tailwindcss.com"></script>    
+    <script>
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        colors: {
+                            clifford: '#da373d',
+                        }
+                    }
+                }
+            }
+    </script>
+    <script src="index.js"></script>
+    <script>
+        getLatest();
+    </script>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Web Console</title>
+        <link rel="stylesheet" href="./style.css">
+        <link rel="icon" href="./favicon.ico" type="image/x-icon">
+    </head>
+    <body class="bg-black">
+        <main >
+            <div class="flex-col justify-center items-center ">
+                <section class="flex justify-center items-center bg-gray-800 py-4">
+                    <div class= "flex-row justify-items-center">
+                        <h1 class="text-4xl xl:font-Roboto-serif font-semibold bg-gray-900 py-2 px-8 text-gray-100">last Image</h1>
+                        <img id="last_image" src="https://placehold.co/600x400" class="m-4 max-h-[300px] max-w-[400px]">
+                    </div>
+                </section>
+                <section class="flex justify-center items-center bg-gray-800 py-4">
+                    <div class= "flex-row justify-items-center">
+                        <h1 class="text-4xl xl:font-Roboto-serif font-semibold bg-gray-900 py-2 px-8 text-gray-100">Slider</h1>
+                        <img id="last_image_offset" src="https://placehold.co/400x300" class="m-4 max-h-[300px] max-w-[400px]">
+                        <div>
+                            <button id="prev" class="bg-gray-900 px-2 py-1 rounded-xl text-white">prev</button>
+                            <button id="next" class="bg-gray-900 px-2 py-1 rounded-xl text-white">next</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <script>
+            let offset = 0;
+
+            document.getElementById('next').addEventListener('click', () => {
+            offset++;
+            getLatestOffset(offset)
+            });
+            
+            document.getElementById('prev').addEventListener('click', () => {
+            if (offset > 0) offset--;
+            getLatestOffset(offset)
+            });
+
+            getLatestOffset(offset)
+        </script>
+    </body>
+</html>
