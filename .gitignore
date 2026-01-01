@@ -1,6 +1,8 @@
-certs/
-
 server/uploads/
 server/database.db
 
 venv/
+
+cron.log
+
+plant_webconsole.bashrc
