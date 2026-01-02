@@ -84,7 +84,7 @@ async def upload(camera_id: int, file: UploadFile = File(None), request: Request
 
     return "OK"
 
-@app.post("/ping")
+@app.get("/ping")
 async def ping():
     print("ESP32 reached server")
     return {"status": "ok"}

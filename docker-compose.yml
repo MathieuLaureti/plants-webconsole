@@ -1,0 +1,25 @@
+services:
+  console:
+    container_name: pwc_console_nginx
+    image: pwc_console_nginx_container
+    restart: unless-stopped
+    build:
+      context: ./console
+      dockerfile: dockerfile
+    ports:
+      - 80:80
+    volumes:
+    - ./console:/console
+
+  server: 
+    container_name: pwc_server
+    image: pwc_server_container
+    restart: unless-stopped
+    build:
+      context: ./server
+      dockerfile: dockerfile
+    env_file: .env
+    ports:
+      - 8167:8167
+    volumes:
+    - ./server:/code

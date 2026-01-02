@@ -6,3 +6,5 @@ venv/
 cron.log
 
 plant_webconsole.bashrc
+
+.env
