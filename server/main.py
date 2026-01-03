@@ -54,7 +54,7 @@ def make_dirs_for_today(camera_id) -> str:
 
 def build_filename() -> str:
     """Return a readable filename like 2025-11-05_22-47-12.jpg"""
-    return datetime.now().strftime("%Y-%m-%d_%H:%M")
+    return f"{datetime.now().strftime('%Y-%m-%d_%H:%M')}.jpg"
 
 @app.post("/upload/{camera_id}", response_class=PlainTextResponse)
 async def upload(camera_id: int, file: UploadFile = File(None), request: Request = None):
@@ -99,7 +99,7 @@ def get_latest_image(camera_id: int,offset: int):
               """,(camera_id,offset))
     row = c.fetchone()
     conn.close()
-
+    print("test")
     if not row:
         return "ERROR no db answer"
     
@@ -107,7 +107,8 @@ def get_latest_image(camera_id: int,offset: int):
     
     dt_object = datetime.fromtimestamp(row["timestamp"])
     timestamp = dt_object.strftime("%Y-%m-%d %H:%M:%S")
-    ans = f"https://192.168.2.109:445/{path}"
+    ans = f"https://homelabdu204.ca/plants/api/{path}"
+    print(ans)
     return JSONResponse(content={
         "url": ans,
         "timestamp": timestamp

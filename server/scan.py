@@ -22,6 +22,7 @@ async def get_ble_data():
         # We add a timeout so the script doesn't hang forever if the device is offline
         result = await asyncio.wait_for(future_data, timeout=10.0)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H:%M")
+        #print(result,timestamp)
         return (result,timestamp)
         
     except asyncio.TimeoutError:
@@ -75,7 +76,7 @@ def data_handling(data):
 def write_to_db(data:tuple):
     MAX_ROWS = 500
     try:
-        conn = sqlite3.connect("/home/mlaureti/plant_webconsole/server/database.db")
+        conn = sqlite3.connect("database.db")
         c = conn.cursor()
         c.execute("""
             CREATE TABLE IF NOT EXISTS sensor_data (
@@ -110,7 +111,7 @@ def write_to_db(data:tuple):
     
 async def main():
     data = await get_ble_data()
-    if not data[0] or data is None:
+    if data is None or not data[0] :
         print("No data received.")
     else:
         translated_data = data_handling(data)

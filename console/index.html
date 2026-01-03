@@ -71,7 +71,7 @@
                     </div>
                     <div class="flex w-full h-1/12 mt-2">
                         <button id="prev" class="bg-bg-light rounded-xl text-text text-2xl xl:font-Roboto-serif font-semibold w-1/3 mr-[2px] h-16 border border-border p-2"><</button>
-                        <button id="camera_button" class="bg-bg-light rounded-xl text-text text-xl md:text-2xl w-1/3 mx-2 h-16 border border-border p-2">Camera 0</button>
+                        <button id="camera_button" class="bg-bg-light rounded-xl text-text text-xl md:text-2xl w-1/3 mx-2 h-16 border border-border p-2">Camera 1</button>
                         <button id="next" class="bg-bg-light rounded-xl text-text text-2xl xl:font-Roboto-serif font-semibold w-1/3 ml-[2px] h-16 border border-border p-2">></button>
                     </div>
                     <div class="flex w-full h-1/12 mt-2">
@@ -86,7 +86,7 @@
         </main>
 
         <script>
-            const API_URL = 'https://192.168.2.109:445/get_THs';
+            const API_URL = 'https://homelabdu204.ca/plants/api/get_THs';
             function renderChart(canvasId, label, dataArray, borderColor, unit) {
                 const ctx = document.getElementById(canvasId).getContext('2d');
                 new Chart(ctx, {
@@ -150,7 +150,7 @@
 
         <script>
             let offset = 0;
-            let camera_id = 0;
+            let camera_id = 1;
             let mode = "day";
             document.getElementById('next').addEventListener('click', () => {
             offset++;
@@ -165,8 +165,8 @@
 
             document.getElementById('camera_button').addEventListener('click', () => {
                 // Cycle through camera id up to 1 (0,1) for now
-                if (camera_id >= 1) {
-                    camera_id = 0;
+                if (camera_id >= 2) {
+                    camera_id = 1;
                 } else
                     camera_id++;
                 document.getElementById('camera_button').innerText = `Camera ${camera_id}`;

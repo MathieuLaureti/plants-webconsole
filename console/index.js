@@ -1,5 +1,5 @@
 async function getLatestOffset(offset,camera_id) {
-  const url = `http://192.168.2.109:8167/api/get_last_image/${offset}/${camera_id}`;
+  const url = `https://homelabdu204.ca/plants/api/get_last_image/${offset}/${camera_id}`;
   try {
     const response = await fetch(url);
     if (!response.ok) {
@@ -20,7 +20,7 @@ async function getLatestOffset(offset,camera_id) {
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function get_slideshow(mode) {
-  const url = `http://192.168.2.109/api/slideshow/${mode}`;
+  const url = `https://homelabdu204.ca/plants/api/slideshow/${mode}`;
   try {
     const response = await fetch(url);
     if (!response.ok) {
