@@ -1,6 +1,19 @@
 import { fetchPlugState, setPlugPower } from "./api.js";
 
 function updateButton(btn, state) {
+  if (state.error) {
+    btn.disabled = true;
+    btn.classList.add("opacity-50");
+    btn.title = state.error;
+    if (state.error.includes("Third-Party")) {
+      btn.innerText = "Enable 3rd-party in Kasa app";
+    } else if (!state.configured) {
+      btn.innerText = "Plug N/A";
+    } else {
+      btn.innerText = "Plug setup needed";
+    }
+    return;
+  }
   if (!state.configured) {
     btn.disabled = true;
     btn.innerText = "Plug N/A";
@@ -9,6 +22,7 @@ function updateButton(btn, state) {
   }
   btn.disabled = false;
   btn.classList.remove("opacity-50");
+  btn.title = "";
   btn.innerText = state.on ? "Power: ON" : "Power: OFF";
   btn.dataset.on = state.on ? "1" : "0";
 }
