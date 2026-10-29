@@ -1,17 +1,23 @@
 import os
 import time
 
-from fastapi import APIRouter, File, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 from fastapi.responses import PlainTextResponse
 
 import database
+from auth.upload_guard import require_lan_upload
 from upload_storage import build_filename, make_dirs_for_today
 
 router = APIRouter()
 
 
 @router.post("/upload/{camera_id}", response_class=PlainTextResponse)
-async def upload(camera_id: int, file: UploadFile = File(None), request: Request = None):
+async def upload(
+    camera_id: int,
+    request: Request,
+    file: UploadFile = File(None),
+    _: None = Depends(require_lan_upload),
+):
     save_dir = make_dirs_for_today(camera_id)
     filename = build_filename()
     path = os.path.join(save_dir, filename)

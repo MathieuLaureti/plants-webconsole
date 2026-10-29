@@ -3,6 +3,9 @@ server/database.db
 
 venv/
 
+__pycache__/
+*.py[cod]
+
 cron.log
 
 plant_webconsole.bashrc
