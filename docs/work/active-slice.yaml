@@ -1,0 +1,8 @@
+# Enrolled work slice — link GitHub issue before merge (label: agent-managed)
+repo: plants-webconsole
+slices:
+  - id: server-modular-layout
+    title: Split server into modules (routes, database package, scan)
+    issue: null # TODO: open issue and set number
+    branch: refactor/server-modular-layout
+    status: in_progress
