@@ -3,6 +3,6 @@ repo: plants-webconsole
 slices:
   - id: server-modular-layout
     title: Split server into modules (routes, database package, scan)
-    issue: null # TODO: open issue and set number
+    issue: 1
     branch: refactor/server-modular-layout
     status: in_progress
