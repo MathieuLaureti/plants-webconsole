@@ -30,42 +30,54 @@ class ScheduleConfig:
     on_minutes: int = 1
     cycle_started_at: float | None = None  # unix seconds UTC
 
-    def interval_seconds(self) -> int:
+    def wait_seconds(self) -> int:
+        """Minutes power stays OFF between activations."""
         return max(1, self.interval_minutes) * 60
 
     def on_seconds(self) -> int:
         return max(1, self.on_minutes) * 60
 
+    def cycle_seconds(self) -> int:
+        return self.wait_seconds() + self.on_seconds()
+
     def validate(self) -> str | None:
         if self.interval_minutes < 1:
-            return "interval_minutes must be at least 1"
+            return "wait_minutes must be at least 1"
         if self.on_minutes < 1:
             return "on_minutes must be at least 1"
-        if self.on_minutes >= self.interval_minutes:
-            return "on_minutes must be less than interval_minutes"
         return None
+
+    def _phase(self, now: float) -> float:
+        elapsed = now - self.cycle_started_at  # type: ignore[operator]
+        if elapsed < 0:
+            elapsed = 0
+        return elapsed % self.cycle_seconds()
 
     def want_power_on(self, now: float) -> bool:
         if not self.enabled or self.cycle_started_at is None:
             return False
-        elapsed = now - self.cycle_started_at
-        if elapsed < 0:
-            elapsed = 0
-        phase = elapsed % self.interval_seconds()
-        return phase < self.on_seconds()
+        return self._phase(now) >= self.wait_seconds()
 
     def seconds_until_next_change(self, now: float) -> float:
         if not self.enabled or self.cycle_started_at is None:
             return TICK_SECONDS
-        elapsed = now - self.cycle_started_at
-        if elapsed < 0:
-            elapsed = 0
-        interval = self.interval_seconds()
-        on_sec = self.on_seconds()
-        phase = elapsed % interval
-        if phase < on_sec:
-            return max(0.5, on_sec - phase)
-        return max(0.5, interval - phase)
+        phase = self._phase(now)
+        wait = self.wait_seconds()
+        cycle = self.cycle_seconds()
+        if phase < wait:
+            return max(0.5, wait - phase)
+        return max(0.5, cycle - phase)
+
+    def seconds_until_activation(self, now: float) -> float:
+        """Seconds until the plug turns ON (start of ON phase)."""
+        if not self.enabled or self.cycle_started_at is None:
+            return TICK_SECONDS
+        phase = self._phase(now)
+        wait = self.wait_seconds()
+        cycle = self.cycle_seconds()
+        if phase < wait:
+            return max(0.5, wait - phase)
+        return max(0.5, cycle - phase + wait)
 
 
 @dataclass
@@ -126,6 +138,10 @@ def _public_status(cfg: ScheduleConfig, plug_on: bool | None) -> dict[str, Any]:
         "seconds_until_change": int(cfg.seconds_until_next_change(now))
         if cfg.enabled and err is None
         else None,
+        "seconds_until_activation": int(cfg.seconds_until_activation(now))
+        if cfg.enabled and err is None
+        else None,
+        "cycle_minutes": cfg.interval_minutes + cfg.on_minutes,
         "error": err or _state.last_error,
     }
 

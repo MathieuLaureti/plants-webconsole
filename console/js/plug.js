@@ -18,49 +18,81 @@ function readMinutes(input) {
   return value;
 }
 
+function setPowerButtonStyle(btn, scheduleOn) {
+  btn.classList.remove("border-success", "bg-success/30", "border-danger", "bg-danger/25");
+  if (scheduleOn) {
+    btn.classList.add("border-success", "bg-success/30");
+    btn.title = "Schedule on — click to stop";
+  } else {
+    btn.classList.add("border-danger", "bg-danger/25");
+    btn.title = "Schedule off — click to start";
+  }
+}
+
+function setIndicatorLight(indicator, plugOn) {
+  indicator.classList.remove("text-warning", "text-border-muted", "drop-shadow");
+  if (plugOn) {
+    indicator.classList.add("text-warning");
+    indicator.style.filter = "drop-shadow(0 0 6px oklch(0.85 0.12 90))";
+  } else {
+    indicator.classList.add("text-border-muted");
+    indicator.style.filter = "";
+  }
+}
+
 function applyPanelState(panel, status, { disabled = false, message = "" } = {}) {
+  const editRow = document.getElementById("plug_edit_row");
+  const runRow = document.getElementById("plug_run_row");
   const interval = document.getElementById("plug_interval");
   const onDuration = document.getElementById("plug_on_duration");
   const statusEl = document.getElementById("plug_status");
-  const startBtn = document.getElementById("plug_start");
-  const stopBtn = document.getElementById("plug_stop");
+  const countdownEl = document.getElementById("plug_countdown");
+  const indicator = document.getElementById("plug_indicator");
+  const powerBtn = document.getElementById("plug_power_toggle");
+
+  const scheduleOn = Boolean(status.enabled);
+
+  if (editRow && runRow) {
+    editRow.classList.toggle("hidden", scheduleOn);
+    editRow.classList.toggle("flex", !scheduleOn);
+    runRow.classList.toggle("hidden", !scheduleOn);
+    runRow.classList.toggle("flex", scheduleOn);
+  }
+
+  setPowerButtonStyle(powerBtn, scheduleOn);
+  setIndicatorLight(indicator, Boolean(status.plug_on));
 
   if (!status.configured) {
     panel.classList.add("opacity-50");
     interval.disabled = true;
     onDuration.disabled = true;
-    startBtn.disabled = true;
-    stopBtn.disabled = true;
+    powerBtn.disabled = true;
     statusEl.innerText = message || "Plug not configured (KASA_* env)";
     return;
   }
 
-  if (status.error && !status.enabled) {
-    panel.classList.add("opacity-50");
-  } else {
-    panel.classList.remove("opacity-50");
-  }
-
-  interval.disabled = disabled || status.enabled;
-  onDuration.disabled = disabled || status.enabled;
-  startBtn.disabled = disabled || status.enabled;
-  stopBtn.disabled = disabled || !status.enabled;
-
-  const powerLabel =
-    status.plug_on === null ? "Power unknown" : status.plug_on ? "Power ON" : "Power OFF";
-  const phase = status.in_on_phase ? "pulse active" : "waiting";
-  const countdown = formatCountdown(status.seconds_until_change);
+  panel.classList.toggle("opacity-50", Boolean(status.error && !scheduleOn));
+  interval.disabled = disabled || scheduleOn;
+  onDuration.disabled = disabled || scheduleOn;
+  powerBtn.disabled = disabled;
 
   if (message) {
     statusEl.innerText = message;
     return;
   }
-  if (status.enabled) {
-    statusEl.innerText = `${powerLabel} · ${phase} · next change in ${countdown}`;
+
+  if (scheduleOn) {
+    const countdown = formatCountdown(status.seconds_until_activation);
+    if (status.in_on_phase) {
+      countdownEl.innerText = `ON · next pulse in ${countdown}`;
+    } else {
+      countdownEl.innerText = `Activates in ${countdown}`;
+    }
+    statusEl.innerText = status.error || `Cycle ${status.cycle_minutes} min (wait ${status.interval_minutes} + ON ${status.on_minutes})`;
   } else if (status.error) {
     statusEl.innerText = status.error;
   } else {
-    statusEl.innerText = `${powerLabel} · schedule stopped`;
+    statusEl.innerText = "Set wait & ON, then power on";
   }
 }
 
@@ -72,23 +104,24 @@ export function initPlugSchedule() {
 
   const interval = document.getElementById("plug_interval");
   const onDuration = document.getElementById("plug_on_duration");
-  const startBtn = document.getElementById("plug_start");
-  const stopBtn = document.getElementById("plug_stop");
+  const powerBtn = document.getElementById("plug_power_toggle");
 
   let lastStatus = null;
   let countdownSeconds = null;
-  let countdownTimer = null;
 
   function syncCountdownFromStatus(status) {
     lastStatus = status;
-    countdownSeconds = status.seconds_until_change;
+    countdownSeconds = status.seconds_until_activation;
     if (interval && document.activeElement !== interval) {
       interval.value = String(status.interval_minutes);
     }
     if (onDuration && document.activeElement !== onDuration) {
       onDuration.value = String(status.on_minutes);
     }
-    applyPanelState(panel, { ...status, seconds_until_change: countdownSeconds });
+    applyPanelState(panel, {
+      ...status,
+      seconds_until_activation: countdownSeconds,
+    });
   }
 
   function tickCountdown() {
@@ -98,7 +131,7 @@ export function initPlugSchedule() {
     countdownSeconds = Math.max(0, countdownSeconds - 1);
     applyPanelState(panel, {
       ...lastStatus,
-      seconds_until_change: countdownSeconds,
+      seconds_until_activation: countdownSeconds,
     });
   }
 
@@ -116,26 +149,20 @@ export function initPlugSchedule() {
     }
   }
 
-  async function submitSchedule(enabled) {
+  async function toggleSchedule() {
+    const turnOn = !lastStatus?.enabled;
     const intervalMin = readMinutes(interval);
     const onMin = readMinutes(onDuration);
     if (intervalMin == null || onMin == null) {
-      applyPanelState(panel, lastStatus || { configured: true }, {
+      applyPanelState(panel, lastStatus || { configured: true, enabled: false }, {
         message: "Enter valid minute values",
       });
       return;
     }
-    if (onMin >= intervalMin) {
-      applyPanelState(panel, lastStatus || { configured: true, enabled: false }, {
-        message: "ON duration must be shorter than the interval",
-      });
-      return;
-    }
-    startBtn.disabled = true;
-    stopBtn.disabled = true;
+    powerBtn.disabled = true;
     try {
       const status = await updatePlugSchedule({
-        enabled,
+        enabled: turnOn,
         interval_minutes: intervalMin,
         on_minutes: onMin,
       });
@@ -149,17 +176,15 @@ export function initPlugSchedule() {
       if (lastStatus) {
         applyPanelState(panel, {
           ...lastStatus,
-          seconds_until_change: countdownSeconds,
+          seconds_until_activation: countdownSeconds,
         });
       }
     }
   }
 
-  startBtn.addEventListener("click", () => submitSchedule(true));
-  stopBtn.addEventListener("click", () => submitSchedule(false));
+  powerBtn.addEventListener("click", () => toggleSchedule());
 
   refresh();
   setInterval(refresh, 15000);
-  countdownTimer = setInterval(tickCountdown, 1000);
-  panel.dataset.countdownTimer = countdownTimer;
+  setInterval(tickCountdown, 1000);
 }

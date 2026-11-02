@@ -65,9 +65,9 @@
             </form>
         </div>
 
-        <main id="app_main" class="hidden">
-            <div class="flex flex-row bg-bg border border-border rounded-xl p-2 w-[1250px] mx-auto max-[1250px]:flex-col max-[1250px]:max-w-[750px] max-[1250px]:min-w-[400px]">
-                <div class="w-[484px] pr-2 flex flex-col h-[749px] max-[1250px]:w-full max-[1250px]:h-auto max-[1250px]:mt-4">
+        <main id="app_main" class="hidden px-2 py-4">
+            <div class="flex flex-row bg-bg border border-border rounded-xl p-2 w-full max-w-[1250px] mx-auto box-border max-[1250px]:flex-col max-[1250px]:max-w-[750px]">
+                <div class="w-[484px] max-w-full shrink-0 pr-2 flex flex-col min-w-0 max-[1250px]:w-full max-[1250px]:pr-0 max-[1250px]:mt-4">
                     <h2 class="text-4xl mb-1 font-semibold text-text bg-bg-light border border-border w-full rounded-xl text-center h-1/12">Temperature °C</h2>
                     <div class="flex-1 relative h-[268px] max-[1250px]:h-[180px]">
                         <canvas id="tempChart" class="w-full h-full"></canvas>
@@ -79,34 +79,35 @@
                     </div>
 
                     <div id="plug_schedule_panel"
-                        class="mt-2 bg-bg-light border border-border rounded-xl p-3 text-text">
-                        <h2 class="text-2xl font-semibold text-center mb-2">Plug pulse</h2>
-                        <div class="grid grid-cols-2 gap-2 text-lg text-text-muted mb-2">
-                            <label class="flex flex-col gap-1">
-                                <span>Every (min)</span>
-                                <input id="plug_interval" type="number" min="2" max="1440" value="5"
-                                    class="bg-bg border border-border rounded-lg p-2 text-text text-center" />
-                            </label>
-                            <label class="flex flex-col gap-1">
-                                <span>ON for (min)</span>
-                                <input id="plug_on_duration" type="number" min="1" max="1439" value="1"
-                                    class="bg-bg border border-border rounded-lg p-2 text-text text-center" />
-                            </label>
-                        </div>
-                        <p id="plug_status" class="text-sm text-center text-text-muted min-h-[2.5rem] mb-2">Loading…</p>
-                        <div class="flex gap-2">
-                            <button id="plug_start" type="button"
-                                class="flex-1 bg-success/20 border border-success rounded-xl text-text text-lg font-semibold h-12 p-2">
-                                Start
+                        class="mt-2 bg-bg-light border border-border rounded-xl px-2 py-2 text-text w-full min-w-0">
+                        <h2 class="text-lg font-semibold text-center mb-1">Plug pulse</h2>
+                        <div class="flex items-stretch gap-2 min-w-0">
+                            <div id="plug_edit_row" class="flex flex-1 gap-2 min-w-0 text-xs text-text-muted">
+                                <label class="flex flex-col gap-0.5 w-[4.5rem] shrink-0">
+                                    <span>Wait (m)</span>
+                                    <input id="plug_interval" type="number" min="1" max="1440" value="5"
+                                        class="bg-bg border border-border rounded-lg px-1 py-1 text-text text-center text-sm w-full" />
+                                </label>
+                                <label class="flex flex-col gap-0.5 w-[4.5rem] shrink-0">
+                                    <span>ON (m)</span>
+                                    <input id="plug_on_duration" type="number" min="1" max="1440" value="1"
+                                        class="bg-bg border border-border rounded-lg px-1 py-1 text-text text-center text-sm w-full" />
+                                </label>
+                            </div>
+                            <div id="plug_run_row" class="hidden flex-1 items-center gap-2 min-w-0 text-sm text-text-muted">
+                                <span id="plug_indicator" class="text-xl leading-none text-border-muted shrink-0" aria-hidden="true">●</span>
+                                <p id="plug_countdown" class="truncate min-w-0">—</p>
+                            </div>
+                            <button id="plug_power_toggle" type="button" title="Schedule off"
+                                class="shrink-0 w-12 h-12 rounded-xl border-2 border-danger bg-danger/25 text-text text-2xl leading-none flex items-center justify-center disabled:opacity-40"
+                                aria-label="Toggle plug schedule">
+                                ⏻
                             </button>
-                            <button id="plug_stop" type="button"
-                                class="flex-1 bg-danger/20 border border-danger rounded-xl text-text text-lg font-semibold h-12 p-2">
-                                Stop
-                            </button>
                         </div>
+                        <p id="plug_status" class="text-xs text-center text-text-muted mt-1 min-h-[1rem] truncate">Loading…</p>
                     </div>
                 </div>
-                <div class="max-w-[750px] min-w-[400px] max-[1250px]:order-first">
+                <div class="flex-1 min-w-0 max-w-[750px] max-[1250px]:order-first max-[1250px]:max-w-full">
                     <div class="h-1/12">
                         <h1 class="text-4xl font-semibold text-text bg-bg-light border border-border w-full rounded-xl text-center h-full">Plant Console</h1>
                     </div>
