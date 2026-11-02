@@ -29,42 +29,66 @@ export async function fetchTimelapse(cameraId, limit) {
   return response.blob();
 }
 
-export async function fetchPlugState() {
-  const response = await authFetch(`${API_BASE}/plug/state`);
+async function parseError(response) {
+  const detail = await response.json().catch(() => ({}));
+  const msg = detail.detail;
+  if (typeof msg === "string") {
+    return msg;
+  }
+  if (Array.isArray(msg)) {
+    return msg.map((e) => e.msg || String(e)).join("; ");
+  }
+  return `HTTP ${response.status}`;
+}
+
+export async function listPlugs() {
+  const response = await authFetch(`${API_BASE}/plugs`);
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    throw new Error(await parseError(response));
   }
   return response.json();
 }
 
-export async function setPlugPower(on) {
-  const path = on ? "on" : "off";
-  const response = await authFetch(`${API_BASE}/plug/${path}`, {
+export async function createPlug(payload) {
+  const response = await authFetch(`${API_BASE}/plugs`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    throw new Error(await parseError(response));
   }
   return response.json();
 }
 
-export async function fetchPlugSchedule() {
-  const response = await authFetch(`${API_BASE}/plug/schedule`);
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-  return response.json();
-}
-
-export async function updatePlugSchedule(payload) {
-  const response = await authFetch(`${API_BASE}/plug/schedule`, {
+export async function updatePlug(id, payload) {
+  const response = await authFetch(`${API_BASE}/plugs/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    const detail = await response.json().catch(() => ({}));
-    throw new Error(detail.detail || `HTTP ${response.status}`);
+    throw new Error(await parseError(response));
+  }
+  return response.json();
+}
+
+export async function setPlugScheduleEnabled(id, enabled) {
+  const response = await authFetch(`${API_BASE}/plugs/${id}/schedule/enabled`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled }),
+  });
+  if (!response.ok) {
+    throw new Error(await parseError(response));
+  }
+  return response.json();
+}
+
+export async function fetchPlugRuntime(id) {
+  const response = await authFetch(`${API_BASE}/plugs/${id}/runtime`);
+  if (!response.ok) {
+    throw new Error(await parseError(response));
   }
   return response.json();
 }

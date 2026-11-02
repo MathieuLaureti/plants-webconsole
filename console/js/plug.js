@@ -1,4 +1,12 @@
-import { fetchPlugSchedule, updatePlugSchedule } from "./api.js";
+import {
+  createPlug,
+  fetchPlugRuntime,
+  listPlugs,
+  setPlugScheduleEnabled,
+  updatePlug,
+} from "./api.js";
+
+const STORAGE_KEY = "plug_selected_id";
 
 function formatCountdown(totalSeconds) {
   if (totalSeconds == null || Number.isNaN(totalSeconds)) {
@@ -10,12 +18,15 @@ function formatCountdown(totalSeconds) {
   return `${mins}:${String(secs).padStart(2, "0")}`;
 }
 
-function readMinutes(input) {
-  const value = parseInt(input.value, 10);
-  if (Number.isNaN(value)) {
-    return null;
+function timeInputToHhmm(value) {
+  if (!value) {
+    return "07:00";
   }
-  return value;
+  return value.length === 5 ? value : value.slice(0, 5);
+}
+
+function hhmmToTimeInput(hhmm) {
+  return hhmm || "07:00";
 }
 
 function setPowerButtonStyle(btn, scheduleOn) {
@@ -30,7 +41,7 @@ function setPowerButtonStyle(btn, scheduleOn) {
 }
 
 function setIndicatorLight(indicator, plugOn) {
-  indicator.classList.remove("text-warning", "text-border-muted", "drop-shadow");
+  indicator.classList.remove("text-warning", "text-border-muted");
   if (plugOn) {
     indicator.classList.add("text-warning");
     indicator.style.filter = "drop-shadow(0 0 6px oklch(0.85 0.12 90))";
@@ -40,173 +51,289 @@ function setIndicatorLight(indicator, plugOn) {
   }
 }
 
-function applyPanelState(panel, status, { disabled = false, message = "" } = {}) {
-  const editRow = document.getElementById("plug_edit_row");
+export function initPlugSchedule() {
+  const panel = document.getElementById("plug_schedule_panel");
+  const select = document.getElementById("plug_select");
+  const addBtn = document.getElementById("plug_add");
+  const editBtn = document.getElementById("plug_edit");
+  const powerBtn = document.getElementById("plug_power_toggle");
   const runRow = document.getElementById("plug_run_row");
-  const interval = document.getElementById("plug_interval");
-  const onDuration = document.getElementById("plug_on_duration");
-  const statusEl = document.getElementById("plug_status");
   const countdownEl = document.getElementById("plug_countdown");
   const indicator = document.getElementById("plug_indicator");
-  const powerBtn = document.getElementById("plug_power_toggle");
+  const statusEl = document.getElementById("plug_status");
 
-  const scheduleOn = Boolean(status.enabled);
+  const backdrop = document.getElementById("plug_modal_backdrop");
+  const form = document.getElementById("plug_form");
+  const modalTitle = document.getElementById("plug_modal_title");
+  const formError = document.getElementById("plug_form_error");
+  const simplePanel = document.getElementById("plug_form_simple");
+  const advancedPanel = document.getElementById("plug_form_advanced");
+  const timeList = document.getElementById("plug_time_list");
+  const timeAddBtn = document.getElementById("plug_time_add");
+  const cancelBtn = document.getElementById("plug_form_cancel");
 
-  if (editRow && runRow) {
-    editRow.classList.toggle("hidden", scheduleOn);
-    editRow.classList.toggle("flex", !scheduleOn);
-    runRow.classList.toggle("hidden", !scheduleOn);
-    runRow.classList.toggle("flex", scheduleOn);
-  }
-
-  setPowerButtonStyle(powerBtn, scheduleOn);
-  setIndicatorLight(indicator, Boolean(status.plug_on));
-
-  if (!status.configured) {
-    panel.classList.add("opacity-50");
-    interval.disabled = true;
-    onDuration.disabled = true;
-    powerBtn.disabled = true;
-    statusEl.classList.remove("hidden");
-    statusEl.innerText = message || "Plug not configured (KASA_* env)";
+  if (!panel || !select) {
     return;
   }
 
-  panel.classList.toggle("opacity-50", Boolean(status.error && !scheduleOn));
-  interval.disabled = disabled || scheduleOn;
-  onDuration.disabled = disabled || scheduleOn;
-  powerBtn.disabled = disabled;
+  let plugs = [];
+  let selectedId = sessionStorage.getItem(STORAGE_KEY) || "";
+  let editingId = null;
+  let lastRuntime = null;
+  let countdownSeconds = null;
 
-  if (message) {
-    statusEl.classList.remove("hidden");
-    statusEl.innerText = message;
-    return;
+  function selectedPlug() {
+    return plugs.find((p) => String(p.id) === String(selectedId));
   }
 
-  if (scheduleOn) {
-    const countdown = formatCountdown(status.seconds_until_change);
-    if (status.in_on_phase) {
+  function showError(msg) {
+    statusEl.classList.remove("hidden");
+    statusEl.innerText = msg;
+  }
+
+  function clearError() {
+    statusEl.classList.add("hidden");
+    statusEl.innerText = "";
+  }
+
+  function populateSelect() {
+    const prev = select.value;
+    select.innerHTML = "";
+    if (plugs.length === 0) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "No plugs";
+      select.appendChild(opt);
+      selectedId = "";
+    } else {
+      for (const plug of plugs) {
+        const opt = document.createElement("option");
+        opt.value = String(plug.id);
+        opt.textContent = plug.title;
+        select.appendChild(opt);
+      }
+      if (plugs.some((p) => String(p.id) === String(selectedId))) {
+        select.value = String(selectedId);
+      } else {
+        selectedId = String(plugs[0].id);
+        select.value = selectedId;
+      }
+    }
+    sessionStorage.setItem(STORAGE_KEY, selectedId);
+    editBtn.disabled = !selectedId;
+    powerBtn.disabled = !selectedId;
+    if (prev !== select.value) {
+      refreshRuntime();
+    }
+  }
+
+  function applyRuntimeUi() {
+    const plug = selectedPlug();
+    const enabled = Boolean(plug?.schedule_enabled);
+    setPowerButtonStyle(powerBtn, enabled);
+    runRow.classList.toggle("hidden", !enabled);
+    runRow.classList.toggle("flex", enabled);
+
+    if (!enabled || !lastRuntime) {
+      return;
+    }
+
+    setIndicatorLight(indicator, Boolean(lastRuntime.plug_on));
+    const countdown = formatCountdown(countdownSeconds);
+    if (lastRuntime.in_on_phase) {
       countdownEl.innerText = `ON for ${countdown}`;
     } else {
       countdownEl.innerText = `Next pulse in ${countdown}`;
     }
-    if (status.error) {
-      statusEl.classList.remove("hidden");
-      statusEl.innerText = status.error;
+    if (lastRuntime.error) {
+      showError(lastRuntime.error);
     } else {
-      statusEl.classList.add("hidden");
-      statusEl.innerText = "";
+      clearError();
     }
-  } else if (status.error) {
-    statusEl.classList.remove("hidden");
-    statusEl.innerText = status.error;
-  } else {
-    statusEl.classList.add("hidden");
-    statusEl.innerText = "";
-  }
-}
-
-export function initPlugSchedule() {
-  const panel = document.getElementById("plug_schedule_panel");
-  if (!panel) {
-    return;
   }
 
-  const interval = document.getElementById("plug_interval");
-  const onDuration = document.getElementById("plug_on_duration");
-  const powerBtn = document.getElementById("plug_power_toggle");
-
-  let lastStatus = null;
-  let countdownSeconds = null;
-
-  function syncCountdownFromStatus(status) {
-    lastStatus = status;
-    countdownSeconds = status.seconds_until_change;
-    if (interval && document.activeElement !== interval) {
-      interval.value = String(status.interval_minutes);
+  async function loadPlugs() {
+    try {
+      plugs = await listPlugs();
+      populateSelect();
+      applyRuntimeUi();
+    } catch (error) {
+      showError(error.message || "Failed to load plugs");
     }
-    if (onDuration && document.activeElement !== onDuration) {
-      onDuration.value = String(status.on_minutes);
+  }
+
+  async function refreshRuntime() {
+    if (!selectedId) {
+      lastRuntime = null;
+      applyRuntimeUi();
+      return;
     }
-    applyPanelState(panel, {
-      ...status,
-      seconds_until_change: countdownSeconds,
-    });
+    try {
+      lastRuntime = await fetchPlugRuntime(selectedId);
+      countdownSeconds = lastRuntime.seconds_until_change;
+      applyRuntimeUi();
+    } catch (error) {
+      showError(error.message || "Runtime unavailable");
+    }
   }
 
   function tickCountdown() {
-    if (!lastStatus?.enabled || countdownSeconds == null) {
+    const plug = selectedPlug();
+    if (!plug?.schedule_enabled || countdownSeconds == null) {
       return;
     }
     if (countdownSeconds <= 0) {
-      const enteringOnPhase = !lastStatus.in_on_phase;
-      lastStatus = {
-        ...lastStatus,
-        in_on_phase: enteringOnPhase,
-        plug_on: enteringOnPhase,
-      };
-      countdownSeconds = enteringOnPhase
-        ? lastStatus.on_minutes * 60
-        : lastStatus.interval_minutes * 60;
-    } else {
-      countdownSeconds -= 1;
+      refreshRuntime();
+      return;
     }
-    applyPanelState(panel, {
-      ...lastStatus,
-      seconds_until_change: countdownSeconds,
+    countdownSeconds -= 1;
+    applyRuntimeUi();
+  }
+
+  function setMode(mode) {
+    const isSimple = mode === "simple";
+    simplePanel.classList.toggle("hidden", !isSimple);
+    advancedPanel.classList.toggle("hidden", isSimple);
+    form.querySelectorAll('input[name="plug_form_mode"]').forEach((el) => {
+      el.checked = el.value === mode;
     });
   }
 
-  async function refresh() {
-    try {
-      const status = await fetchPlugSchedule();
-      syncCountdownFromStatus(status);
-    } catch (error) {
-      console.error("Plug schedule error:", error);
-      applyPanelState(
-        panel,
-        { configured: false, enabled: false, plug_on: null, error: null },
-        { message: "Plug schedule unavailable" }
-      );
-    }
+  function addTimeRow(value = "08:00") {
+    const li = document.createElement("li");
+    li.className = "flex gap-2 items-center";
+    li.innerHTML = `<input type="time" value="${value}" class="plug-time-entry flex-1 bg-bg-light border border-border rounded-lg p-1 text-text text-sm" />
+      <button type="button" class="plug-time-remove text-danger text-xs border border-border rounded px-2">×</button>`;
+    li.querySelector(".plug-time-remove").addEventListener("click", () => li.remove());
+    timeList.appendChild(li);
   }
 
-  async function toggleSchedule() {
-    const turnOn = !lastStatus?.enabled;
-    const intervalMin = readMinutes(interval);
-    const onMin = readMinutes(onDuration);
-    if (intervalMin == null || onMin == null) {
-      applyPanelState(panel, lastStatus || { configured: true, enabled: false }, {
-        message: "Enter valid minute values",
-      });
+  function readSimpleSchedule() {
+    return {
+      morning_time: timeInputToHhmm(document.getElementById("plug_simple_morning").value),
+      night_time: timeInputToHhmm(document.getElementById("plug_simple_night").value),
+      day_pulse_count: parseInt(document.getElementById("plug_simple_day_count").value, 10),
+      night_pulse_count: parseInt(document.getElementById("plug_simple_night_count").value, 10),
+      pulse_seconds: parseInt(document.getElementById("plug_simple_pulse").value, 10),
+    };
+  }
+
+  function readAdvancedSchedule() {
+    const times = [...timeList.querySelectorAll(".plug-time-entry")].map((el) =>
+      timeInputToHhmm(el.value)
+    );
+    return {
+      pulse_seconds: parseInt(document.getElementById("plug_advanced_pulse").value, 10),
+      times,
+    };
+  }
+
+  function openModal({ plug = null } = {}) {
+    editingId = plug ? plug.id : null;
+    modalTitle.innerText = plug ? "Edit plug" : "New plug";
+    formError.classList.add("hidden");
+    document.getElementById("plug_form_host").value = plug?.host || "";
+    document.getElementById("plug_form_title").value = plug?.title || "";
+    document.getElementById("plug_form_description").value = plug?.description || "";
+    const mode = plug?.schedule_type || "simple";
+    setMode(mode);
+    const schedule = plug?.schedule || {};
+    if (mode === "simple") {
+      document.getElementById("plug_simple_morning").value = hhmmToTimeInput(
+        schedule.morning_time || "07:00"
+      );
+      document.getElementById("plug_simple_night").value = hhmmToTimeInput(
+        schedule.night_time || "20:00"
+      );
+      document.getElementById("plug_simple_day_count").value = schedule.day_pulse_count ?? 14;
+      document.getElementById("plug_simple_night_count").value = schedule.night_pulse_count ?? 4;
+      document.getElementById("plug_simple_pulse").value = schedule.pulse_seconds ?? 60;
+    } else {
+      document.getElementById("plug_advanced_pulse").value = schedule.pulse_seconds ?? 60;
+      timeList.innerHTML = "";
+      const times = schedule.times?.length ? schedule.times : ["08:00", "12:00"];
+      times.forEach((t) => addTimeRow(hhmmToTimeInput(t)));
+    }
+    backdrop.classList.remove("hidden");
+  }
+
+  function closeModal() {
+    backdrop.classList.add("hidden");
+    editingId = null;
+  }
+
+  form.querySelectorAll('input[name="plug_form_mode"]').forEach((el) => {
+    el.addEventListener("change", () => setMode(el.value));
+  });
+
+  timeAddBtn.addEventListener("click", () => addTimeRow());
+  cancelBtn.addEventListener("click", closeModal);
+  addBtn.addEventListener("click", () => {
+    timeList.innerHTML = "";
+    addTimeRow("08:00");
+    openModal();
+  });
+  editBtn.addEventListener("click", () => {
+    const plug = selectedPlug();
+    if (plug) {
+      openModal({ plug });
+    }
+  });
+
+  select.addEventListener("change", () => {
+    selectedId = select.value;
+    sessionStorage.setItem(STORAGE_KEY, selectedId);
+    editBtn.disabled = !selectedId;
+    powerBtn.disabled = !selectedId;
+    refreshRuntime();
+  });
+
+  powerBtn.addEventListener("click", async () => {
+    const plug = selectedPlug();
+    if (!plug) {
       return;
     }
     powerBtn.disabled = true;
     try {
-      const status = await updatePlugSchedule({
-        enabled: turnOn,
-        interval_minutes: intervalMin,
-        on_minutes: onMin,
-      });
-      syncCountdownFromStatus(status);
+      const enabled = !plug.schedule_enabled;
+      await setPlugScheduleEnabled(plug.id, enabled);
+      await loadPlugs();
+      await refreshRuntime();
     } catch (error) {
-      console.error("Plug schedule update:", error);
-      applyPanelState(panel, lastStatus || { configured: true, enabled: false }, {
-        message: error.message || "Update failed",
-      });
+      showError(error.message || "Toggle failed");
     } finally {
-      if (lastStatus) {
-        applyPanelState(panel, {
-          ...lastStatus,
-          seconds_until_change: countdownSeconds,
-        });
-      }
+      powerBtn.disabled = !selectedId;
     }
-  }
+  });
 
-  powerBtn.addEventListener("click", () => toggleSchedule());
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    formError.classList.add("hidden");
+    const mode = form.querySelector('input[name="plug_form_mode"]:checked').value;
+    const payload = {
+      host: document.getElementById("plug_form_host").value.trim(),
+      title: document.getElementById("plug_form_title").value.trim(),
+      description: document.getElementById("plug_form_description").value.trim() || null,
+      schedule_type: mode,
+      schedule: mode === "simple" ? readSimpleSchedule() : readAdvancedSchedule(),
+    };
+    try {
+      if (editingId) {
+        await updatePlug(editingId, payload);
+      } else {
+        const created = await createPlug(payload);
+        selectedId = String(created.id);
+      }
+      closeModal();
+      await loadPlugs();
+      await refreshRuntime();
+    } catch (error) {
+      formError.innerText = error.message || "Save failed";
+      formError.classList.remove("hidden");
+    }
+  });
 
-  refresh();
-  setInterval(refresh, 5000);
+  loadPlugs();
+  setInterval(refreshRuntime, 5000);
   setInterval(tickCountdown, 1000);
 }

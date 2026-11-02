@@ -13,6 +13,7 @@ from upload_storage import ensure_upload_root
 
 ensure_upload_root()
 database.init_captures_db()
+database.init_kasa_plugs_db()
 validate_auth_config()
 
 

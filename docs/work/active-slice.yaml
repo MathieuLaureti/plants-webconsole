@@ -16,3 +16,8 @@ slices:
     issue: 3
     branch: feat/plug-pulse-schedule
     status: in_progress
+  - id: multi-plug-profiles
+    title: Multi-plug Kasa profiles and scheduling
+    issue: 5
+    branch: feat/multi-plug-profiles
+    status: in_progress

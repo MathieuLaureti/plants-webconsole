@@ -80,31 +80,28 @@
 
                     <div id="plug_schedule_panel"
                         class="mt-2 bg-bg-light border border-border rounded-xl px-2 py-2 text-text w-full min-w-0">
-                        <h2 class="text-lg font-semibold text-center mb-1">Water controle</h2>
-                        <div class="flex items-stretch gap-2 min-w-0">
-                            <div id="plug_edit_row" class="flex flex-1 gap-2 min-w-0 text-xs text-text-muted">
-                                <label class="flex flex-col gap-0.5 w-[4.5rem] shrink-0">
-                                    <span>Wait (m)</span>
-                                    <input id="plug_interval" type="number" min="1" max="1440" value="5"
-                                        class="bg-bg border border-border rounded-lg px-1 py-1 text-text text-center text-sm w-full" />
-                                </label>
-                                <label class="flex flex-col gap-0.5 w-[4.5rem] shrink-0">
-                                    <span>ON (m)</span>
-                                    <input id="plug_on_duration" type="number" min="1" max="1440" value="1"
-                                        class="bg-bg border border-border rounded-lg px-1 py-1 text-text text-center text-sm w-full" />
-                                </label>
-                            </div>
-                            <div id="plug_run_row" class="hidden flex-1 items-center gap-2 min-w-0 text-sm text-text-muted">
-                                <span id="plug_indicator" class="text-xl leading-none text-border-muted shrink-0" aria-hidden="true">●</span>
-                                <p id="plug_countdown" class="truncate min-w-0">—</p>
-                            </div>
+                        <h2 class="text-lg font-semibold text-center mb-1">Plug controle</h2>
+                        <div class="flex items-center gap-1 min-w-0">
+                            <button id="plug_add" type="button" title="Add plug"
+                                class="shrink-0 w-10 h-10 bg-bg border border-border rounded-lg text-text text-xl">+</button>
+                            <select id="plug_select"
+                                class="flex-1 min-w-0 h-10 bg-bg border border-border rounded-lg text-text text-sm px-1 truncate">
+                                <option value="">No plugs</option>
+                            </select>
+                            <button id="plug_edit" type="button" title="Edit plug"
+                                class="shrink-0 w-10 h-10 bg-bg border border-border rounded-lg text-text text-sm disabled:opacity-40"
+                                disabled>✎</button>
                             <button id="plug_power_toggle" type="button" title="Schedule off"
                                 class="shrink-0 w-12 h-12 rounded-xl border-2 border-danger bg-danger/25 text-text text-2xl leading-none flex items-center justify-center disabled:opacity-40"
-                                aria-label="Toggle plug schedule">
+                                aria-label="Toggle schedule" disabled>
                                 ⏻
                             </button>
                         </div>
-                        <p id="plug_status" class="hidden text-xs text-center text-danger mt-1 truncate">Loading…</p>
+                        <div id="plug_run_row" class="hidden flex items-center gap-2 min-w-0 text-sm text-text-muted mt-1">
+                            <span id="plug_indicator" class="text-xl leading-none text-border-muted shrink-0" aria-hidden="true">●</span>
+                            <p id="plug_countdown" class="truncate min-w-0 flex-1">—</p>
+                        </div>
+                        <p id="plug_status" class="hidden text-xs text-center text-danger mt-1 truncate"></p>
                     </div>
                 </div>
                 <div class="flex-1 min-w-0 max-w-[750px] max-[1250px]:order-first max-[1250px]:max-w-full">
@@ -128,6 +125,62 @@
                 </div>
             </div>
         </main>
+
+        <div id="plug_modal_backdrop" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-bg-dark/80 p-4">
+            <form id="plug_form" class="bg-bg border border-border rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+                <h2 id="plug_modal_title" class="text-2xl text-text text-center mb-4">New plug</h2>
+                <label class="block text-text-muted text-sm mb-1" for="plug_form_host">Host (IP)</label>
+                <input id="plug_form_host" required
+                    class="w-full mb-3 bg-bg-light border border-border rounded-lg p-2 text-text text-sm" />
+                <label class="block text-text-muted text-sm mb-1" for="plug_form_title">Title</label>
+                <input id="plug_form_title" required
+                    class="w-full mb-3 bg-bg-light border border-border rounded-lg p-2 text-text text-sm" />
+                <label class="block text-text-muted text-sm mb-1" for="plug_form_description">Description (optional)</label>
+                <input id="plug_form_description"
+                    class="w-full mb-3 bg-bg-light border border-border rounded-lg p-2 text-text text-sm" />
+                <fieldset class="mb-3 border border-border rounded-lg p-2">
+                    <legend class="text-text-muted text-sm px-1">Schedule mode</legend>
+                    <label class="inline-flex items-center mr-4 text-text text-sm">
+                        <input type="radio" name="plug_form_mode" value="simple" checked class="mr-1" /> Simple
+                    </label>
+                    <label class="inline-flex items-center text-text text-sm">
+                        <input type="radio" name="plug_form_mode" value="advanced" class="mr-1" /> Advanced
+                    </label>
+                </fieldset>
+                <div id="plug_form_simple" class="space-y-2 text-sm text-text-muted mb-3">
+                    <div class="flex gap-2">
+                        <label class="flex-1">Morning<input id="plug_simple_morning" type="time" value="07:00"
+                            class="w-full mt-1 bg-bg-light border border-border rounded-lg p-1 text-text" /></label>
+                        <label class="flex-1">Night<input id="plug_simple_night" type="time" value="20:00"
+                            class="w-full mt-1 bg-bg-light border border-border rounded-lg p-1 text-text" /></label>
+                    </div>
+                    <div class="flex gap-2">
+                        <label class="flex-1">Day count<input id="plug_simple_day_count" type="number" min="1" value="14"
+                            class="w-full mt-1 bg-bg-light border border-border rounded-lg p-1 text-text" /></label>
+                        <label class="flex-1">Night count<input id="plug_simple_night_count" type="number" min="1" value="4"
+                            class="w-full mt-1 bg-bg-light border border-border rounded-lg p-1 text-text" /></label>
+                    </div>
+                    <label class="block">Pulse (seconds)<input id="plug_simple_pulse" type="number" min="1" value="60"
+                        class="w-full mt-1 bg-bg-light border border-border rounded-lg p-1 text-text" /></label>
+                </div>
+                <div id="plug_form_advanced" class="hidden space-y-2 text-sm text-text-muted mb-3">
+                    <label class="block">Pulse (seconds)<input id="plug_advanced_pulse" type="number" min="1" value="60"
+                        class="w-full mt-1 bg-bg-light border border-border rounded-lg p-1 text-text" /></label>
+                    <div class="flex items-center justify-between">
+                        <span>Activation times</span>
+                        <button id="plug_time_add" type="button" class="text-text border border-border rounded px-2 py-0.5 text-xs">+ time</button>
+                    </div>
+                    <ul id="plug_time_list" class="space-y-1"></ul>
+                </div>
+                <p id="plug_form_error" class="hidden text-danger text-sm mb-2"></p>
+                <div class="flex gap-2">
+                    <button type="button" id="plug_form_cancel"
+                        class="flex-1 bg-bg-light border border-border rounded-xl text-text h-11">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 bg-bg-light border border-border rounded-xl text-text h-11 font-semibold">Save</button>
+                </div>
+            </form>
+        </div>
 
         <script type="module" src="./js/main.js"></script>
     </body>
