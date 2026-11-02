@@ -1,65 +1,165 @@
-import { fetchPlugState, setPlugPower } from "./api.js";
+import { fetchPlugSchedule, updatePlugSchedule } from "./api.js";
 
-function updateButton(btn, state) {
-  if (state.error) {
-    btn.disabled = true;
-    btn.classList.add("opacity-50");
-    btn.title = state.error;
-    if (state.error.includes("Third-Party")) {
-      btn.innerText = "Enable 3rd-party in Kasa app";
-    } else if (!state.configured) {
-      btn.innerText = "Plug N/A";
-    } else {
-      btn.innerText = "Plug setup needed";
-    }
-    return;
+function formatCountdown(totalSeconds) {
+  if (totalSeconds == null || Number.isNaN(totalSeconds)) {
+    return "—";
   }
-  if (!state.configured) {
-    btn.disabled = true;
-    btn.innerText = "Plug N/A";
-    btn.classList.add("opacity-50");
-    return;
-  }
-  btn.disabled = false;
-  btn.classList.remove("opacity-50");
-  btn.title = "";
-  btn.innerText = state.on ? "Power: ON" : "Power: OFF";
-  btn.dataset.on = state.on ? "1" : "0";
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const mins = Math.floor(s / 60);
+  const secs = s % 60;
+  return `${mins}:${String(secs).padStart(2, "0")}`;
 }
 
-export function initPlugToggle() {
-  const btn = document.getElementById("plug_toggle");
-  if (!btn) {
+function readMinutes(input) {
+  const value = parseInt(input.value, 10);
+  if (Number.isNaN(value)) {
+    return null;
+  }
+  return value;
+}
+
+function applyPanelState(panel, status, { disabled = false, message = "" } = {}) {
+  const interval = document.getElementById("plug_interval");
+  const onDuration = document.getElementById("plug_on_duration");
+  const statusEl = document.getElementById("plug_status");
+  const startBtn = document.getElementById("plug_start");
+  const stopBtn = document.getElementById("plug_stop");
+
+  if (!status.configured) {
+    panel.classList.add("opacity-50");
+    interval.disabled = true;
+    onDuration.disabled = true;
+    startBtn.disabled = true;
+    stopBtn.disabled = true;
+    statusEl.innerText = message || "Plug not configured (KASA_* env)";
     return;
+  }
+
+  if (status.error && !status.enabled) {
+    panel.classList.add("opacity-50");
+  } else {
+    panel.classList.remove("opacity-50");
+  }
+
+  interval.disabled = disabled || status.enabled;
+  onDuration.disabled = disabled || status.enabled;
+  startBtn.disabled = disabled || status.enabled;
+  stopBtn.disabled = disabled || !status.enabled;
+
+  const powerLabel =
+    status.plug_on === null ? "Power unknown" : status.plug_on ? "Power ON" : "Power OFF";
+  const phase = status.in_on_phase ? "pulse active" : "waiting";
+  const countdown = formatCountdown(status.seconds_until_change);
+
+  if (message) {
+    statusEl.innerText = message;
+    return;
+  }
+  if (status.enabled) {
+    statusEl.innerText = `${powerLabel} · ${phase} · next change in ${countdown}`;
+  } else if (status.error) {
+    statusEl.innerText = status.error;
+  } else {
+    statusEl.innerText = `${powerLabel} · schedule stopped`;
+  }
+}
+
+export function initPlugSchedule() {
+  const panel = document.getElementById("plug_schedule_panel");
+  if (!panel) {
+    return;
+  }
+
+  const interval = document.getElementById("plug_interval");
+  const onDuration = document.getElementById("plug_on_duration");
+  const startBtn = document.getElementById("plug_start");
+  const stopBtn = document.getElementById("plug_stop");
+
+  let lastStatus = null;
+  let countdownSeconds = null;
+  let countdownTimer = null;
+
+  function syncCountdownFromStatus(status) {
+    lastStatus = status;
+    countdownSeconds = status.seconds_until_change;
+    if (interval && document.activeElement !== interval) {
+      interval.value = String(status.interval_minutes);
+    }
+    if (onDuration && document.activeElement !== onDuration) {
+      onDuration.value = String(status.on_minutes);
+    }
+    applyPanelState(panel, { ...status, seconds_until_change: countdownSeconds });
+  }
+
+  function tickCountdown() {
+    if (!lastStatus?.enabled || countdownSeconds == null) {
+      return;
+    }
+    countdownSeconds = Math.max(0, countdownSeconds - 1);
+    applyPanelState(panel, {
+      ...lastStatus,
+      seconds_until_change: countdownSeconds,
+    });
   }
 
   async function refresh() {
     try {
-      const state = await fetchPlugState();
-      updateButton(btn, state);
+      const status = await fetchPlugSchedule();
+      syncCountdownFromStatus(status);
     } catch (error) {
-      console.error("Plug state error:", error);
-      btn.disabled = true;
-      btn.innerText = "Plug ERR";
+      console.error("Plug schedule error:", error);
+      applyPanelState(
+        panel,
+        { configured: false, enabled: false, plug_on: null, error: null },
+        { message: "Plug schedule unavailable" }
+      );
     }
   }
 
-  btn.addEventListener("click", async () => {
-    if (btn.disabled) {
+  async function submitSchedule(enabled) {
+    const intervalMin = readMinutes(interval);
+    const onMin = readMinutes(onDuration);
+    if (intervalMin == null || onMin == null) {
+      applyPanelState(panel, lastStatus || { configured: true }, {
+        message: "Enter valid minute values",
+      });
       return;
     }
-    const turnOn = btn.dataset.on !== "1";
-    btn.disabled = true;
-    btn.innerText = "...";
-    try {
-      const state = await setPlugPower(turnOn);
-      updateButton(btn, state);
-    } catch (error) {
-      console.error("Plug toggle error:", error);
-      await refresh();
+    if (onMin >= intervalMin) {
+      applyPanelState(panel, lastStatus || { configured: true, enabled: false }, {
+        message: "ON duration must be shorter than the interval",
+      });
+      return;
     }
-  });
+    startBtn.disabled = true;
+    stopBtn.disabled = true;
+    try {
+      const status = await updatePlugSchedule({
+        enabled,
+        interval_minutes: intervalMin,
+        on_minutes: onMin,
+      });
+      syncCountdownFromStatus(status);
+    } catch (error) {
+      console.error("Plug schedule update:", error);
+      applyPanelState(panel, lastStatus || { configured: true, enabled: false }, {
+        message: error.message || "Update failed",
+      });
+    } finally {
+      if (lastStatus) {
+        applyPanelState(panel, {
+          ...lastStatus,
+          seconds_until_change: countdownSeconds,
+        });
+      }
+    }
+  }
+
+  startBtn.addEventListener("click", () => submitSchedule(true));
+  stopBtn.addEventListener("click", () => submitSchedule(false));
 
   refresh();
-  setInterval(refresh, 60000);
+  setInterval(refresh, 15000);
+  countdownTimer = setInterval(tickCountdown, 1000);
+  panel.dataset.countdownTimer = countdownTimer;
 }

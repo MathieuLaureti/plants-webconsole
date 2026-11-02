@@ -47,3 +47,24 @@ export async function setPlugPower(on) {
   }
   return response.json();
 }
+
+export async function fetchPlugSchedule() {
+  const response = await authFetch(`${API_BASE}/plug/schedule`);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function updatePlugSchedule(payload) {
+  const response = await authFetch(`${API_BASE}/plug/schedule`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => ({}));
+    throw new Error(detail.detail || `HTTP ${response.status}`);
+  }
+  return response.json();
+}

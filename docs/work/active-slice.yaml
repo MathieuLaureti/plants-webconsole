@@ -11,3 +11,8 @@ slices:
     issue: 2
     branch: feat/kp125m-jwt-plug
     status: in_progress
+  - id: plug-pulse-schedule
+    title: Kasa plug pulse schedule (interval + on duration)
+    issue: 3
+    branch: feat/plug-pulse-schedule
+    status: in_progress

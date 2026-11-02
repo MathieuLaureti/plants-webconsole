@@ -1,7 +1,7 @@
 import { clearToken, getToken, login } from "./auth.js";
 import { startChartPolling } from "./charts.js";
 import { createGalleryController } from "./gallery.js";
-import { initPlugToggle } from "./plug.js";
+import { initPlugSchedule } from "./plug.js";
 
 function showLogin(show) {
   const login = document.getElementById("login_panel");
@@ -37,7 +37,7 @@ function bootApp() {
   showLogin(false);
   startChartPolling();
   createGalleryController().wireControls();
-  initPlugToggle();
+  initPlugSchedule();
 }
 
 function boot() {

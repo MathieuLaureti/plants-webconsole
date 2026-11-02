@@ -1,5 +1,6 @@
 server/uploads/
 server/database.db
+server/plug_schedule.json
 
 venv/
 

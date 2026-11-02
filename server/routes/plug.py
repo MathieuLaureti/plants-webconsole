@@ -5,6 +5,8 @@ from auth.deps import get_current_user
 from kasa_control import client as kasa_client
 from kasa_control import config as kasa_config
 from kasa_control.errors import friendly_kasa_error
+from kasa_control.schedule_models import PlugScheduleUpdate
+from kasa_control import scheduler as plug_scheduler
 
 router = APIRouter(prefix="/plug", tags=["plug"])
 
@@ -60,3 +62,25 @@ async def plug_off(_user: str = Depends(get_current_user)):
         if response is not None:
             return response
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.get("/schedule")
+async def plug_schedule_get(_user: str = Depends(get_current_user)):
+    return await plug_scheduler.get_status()
+
+
+@router.put("/schedule")
+async def plug_schedule_put(
+    body: PlugScheduleUpdate,
+    _user: str = Depends(get_current_user),
+):
+    if not kasa_config.is_configured():
+        raise HTTPException(status_code=503, detail="KASA_* not configured")
+    try:
+        return await plug_scheduler.apply_schedule(
+            enabled=body.enabled,
+            interval_minutes=body.interval_minutes,
+            on_minutes=body.on_minutes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
