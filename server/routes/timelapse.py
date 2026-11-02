@@ -2,18 +2,21 @@ import os
 import subprocess
 import tempfile
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 
 import database
+from auth.deps import get_current_user
 from config import CODE_ROOT
 
 router = APIRouter()
 
 
 @router.get("/generate-timelapse/{camera_id}/{limit}")
-async def generate_timelapse(camera_id: int, limit: int):
+async def generate_timelapse(
+    camera_id: int, limit: int, _user: str = Depends(get_current_user)
+):
     image_paths = database.fetch_capture_paths(camera_id, limit)
     if not image_paths:
         raise HTTPException(status_code=404, detail="No images found")
