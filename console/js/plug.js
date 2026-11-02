@@ -2,6 +2,7 @@ import {
   createPlug,
   fetchPlugRuntime,
   listPlugs,
+  pingPlugHost,
   setPlugScheduleEnabled,
   updatePlug,
 } from "./api.js";
@@ -87,6 +88,7 @@ export function initPlugSchedule() {
   const timeList = document.getElementById("plug_time_list");
   const timeAddBtn = document.getElementById("plug_time_add");
   const cancelBtn = document.getElementById("plug_form_cancel");
+  const pingBtn = document.getElementById("plug_form_ping");
 
   if (!panel || !select) {
     return;
@@ -303,6 +305,32 @@ export function initPlugSchedule() {
 
   timeAddBtn.addEventListener("click", () => addTimeRow());
   cancelBtn.addEventListener("click", closeModal);
+
+  pingBtn.addEventListener("click", async () => {
+    const host = document.getElementById("plug_form_host").value.trim();
+    if (!host) {
+      formError.innerText = "Enter host IP before ping";
+      formError.classList.remove("hidden");
+      return;
+    }
+    formError.classList.add("hidden");
+    pingBtn.disabled = true;
+    pingBtn.innerText = "…";
+    try {
+      await pingPlugHost(host);
+      pingBtn.innerText = "OK";
+      setTimeout(() => {
+        pingBtn.innerText = "Ping";
+      }, 1200);
+    } catch (error) {
+      formError.innerText = error.message || "Ping failed";
+      formError.classList.remove("hidden");
+      pingBtn.innerText = "Ping";
+    } finally {
+      pingBtn.disabled = false;
+    }
+  });
+
   addBtn.addEventListener("click", () => {
     timeList.innerHTML = "";
     addTimeRow("08:00");

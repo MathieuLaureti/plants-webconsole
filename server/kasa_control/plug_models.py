@@ -70,6 +70,15 @@ class ScheduleEnabledUpdate(BaseModel):
     enabled: bool
 
 
+class PlugPing(BaseModel):
+    host: str = Field(min_length=1, max_length=253)
+
+    @field_validator("host")
+    @classmethod
+    def strip_host(cls, value: str) -> str:
+        return value.strip()
+
+
 def validate_schedule_for_type(
     schedule_type: str, schedule: dict
 ) -> SimpleSchedule | AdvancedSchedule | StaticSchedule:

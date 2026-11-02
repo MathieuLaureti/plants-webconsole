@@ -1,3 +1,5 @@
+import asyncio
+
 from kasa import Discover
 
 from kasa_control import config
@@ -26,3 +28,10 @@ async def set_power(host: str, on: bool) -> bool:
         await dev.turn_off()
     await dev.update()
     return dev.is_on
+
+
+async def pulse_host(host: str, seconds: float = 1.0) -> None:
+    """Turn plug on briefly so the user can identify it by host."""
+    await set_power(host, True)
+    await asyncio.sleep(seconds)
+    await set_power(host, False)

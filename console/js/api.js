@@ -85,6 +85,18 @@ export async function setPlugScheduleEnabled(id, enabled) {
   return response.json();
 }
 
+export async function pingPlugHost(host) {
+  const response = await authFetch(`${API_BASE}/plugs/ping`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ host }),
+  });
+  if (!response.ok) {
+    throw new Error(await parseError(response));
+  }
+  return response.json();
+}
+
 export async function fetchPlugRuntime(id) {
   const response = await authFetch(`${API_BASE}/plugs/${id}/runtime`);
   if (!response.ok) {

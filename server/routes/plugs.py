@@ -2,10 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException
 
 import database.kasa_plugs as plugs_db
 from auth.deps import get_current_user
+from kasa_control import client as kasa_client
 from kasa_control import config as kasa_config
 from kasa_control import scheduler as plug_scheduler
 from kasa_control.plug_models import (
     PlugCreate,
+    PlugPing,
     PlugUpdate,
     ScheduleEnabledUpdate,
     validate_schedule_for_type,
@@ -52,6 +54,16 @@ async def create_plug(body: PlugCreate, _user: str = Depends(get_current_user)):
         if "UNIQUE" in str(exc):
             raise HTTPException(status_code=409, detail="host already registered") from exc
         raise
+
+
+@router.post("/ping")
+async def ping_plug(body: PlugPing, _user: str = Depends(get_current_user)):
+    _require_kasa()
+    try:
+        await kasa_client.pulse_host(body.host, seconds=1.0)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return {"ok": True, "host": body.host, "seconds": 1}
 
 
 @router.get("/{plug_id}")

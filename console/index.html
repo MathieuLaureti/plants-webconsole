@@ -130,8 +130,14 @@
             <form id="plug_form" class="bg-bg border border-border rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
                 <h2 id="plug_modal_title" class="text-2xl text-text text-center mb-4">New plug</h2>
                 <label class="block text-text-muted text-sm mb-1" for="plug_form_host">Host (IP)</label>
-                <input id="plug_form_host" required
-                    class="w-full mb-3 bg-bg-light border border-border rounded-lg p-2 text-text text-sm" />
+                <div class="flex gap-2 mb-3">
+                    <input id="plug_form_host" required
+                        class="flex-1 min-w-0 bg-bg-light border border-border rounded-lg p-2 text-text text-sm" />
+                    <button type="button" id="plug_form_ping" title="Power on for 1 second"
+                        class="shrink-0 px-3 h-10 bg-bg-light border border-border rounded-lg text-text text-sm font-semibold">
+                        Ping
+                    </button>
+                </div>
                 <label class="block text-text-muted text-sm mb-1" for="plug_form_title">Title</label>
                 <input id="plug_form_title" required
                     class="w-full mb-3 bg-bg-light border border-border rounded-lg p-2 text-text text-sm" />
