@@ -185,6 +185,6 @@ export function initPlugSchedule() {
   powerBtn.addEventListener("click", () => toggleSchedule());
 
   refresh();
-  setInterval(refresh, 15000);
+  setInterval(refresh, 5000);
   setInterval(tickCountdown, 1000);
 }
