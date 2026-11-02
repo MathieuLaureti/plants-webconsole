@@ -8,28 +8,29 @@ import {
 
 const STORAGE_KEY = "plug_selected_id";
 
-function formatEventTime(totalSeconds) {
+function formatCountdown(totalSeconds) {
   if (totalSeconds == null || Number.isNaN(totalSeconds)) {
     return "—";
   }
-  const end = new Date(Date.now() + Math.max(0, Math.floor(totalSeconds)) * 1000);
-  return end.toLocaleTimeString("en-GB", {
-    hour12: false,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(s / 3600);
+  const mins = Math.floor((s % 3600) / 60);
+  const secs = s % 60;
+  if (hours > 0) {
+    return `${hours}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  }
+  return `${mins}:${String(secs).padStart(2, "0")}`;
 }
 
 function formatRuntimeLabel(runtime, secondsUntilChange) {
-  const at = formatEventTime(secondsUntilChange);
+  const countdown = formatCountdown(secondsUntilChange);
   if (runtime.in_on_phase) {
-    return `ON until ${at}`;
+    return `ON for ${countdown}`;
   }
   if (runtime.schedule_type === "static") {
-    return `Activates at ${at}`;
+    return `Activates in ${countdown}`;
   }
-  return `Next pulse at ${at}`;
+  return `Next pulse in ${countdown}`;
 }
 
 function timeInputToHhmm(value) {
