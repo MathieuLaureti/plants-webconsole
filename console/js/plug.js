@@ -67,6 +67,7 @@ function applyPanelState(panel, status, { disabled = false, message = "" } = {})
     interval.disabled = true;
     onDuration.disabled = true;
     powerBtn.disabled = true;
+    statusEl.classList.remove("hidden");
     statusEl.innerText = message || "Plug not configured (KASA_* env)";
     return;
   }
@@ -77,22 +78,31 @@ function applyPanelState(panel, status, { disabled = false, message = "" } = {})
   powerBtn.disabled = disabled;
 
   if (message) {
+    statusEl.classList.remove("hidden");
     statusEl.innerText = message;
     return;
   }
 
   if (scheduleOn) {
-    const countdown = formatCountdown(status.seconds_until_activation);
+    const countdown = formatCountdown(status.seconds_until_change);
     if (status.in_on_phase) {
-      countdownEl.innerText = `ON · next pulse in ${countdown}`;
+      countdownEl.innerText = `ON for ${countdown}`;
     } else {
-      countdownEl.innerText = `Activates in ${countdown}`;
+      countdownEl.innerText = `Next pulse in ${countdown}`;
     }
-    statusEl.innerText = status.error || `Cycle ${status.cycle_minutes} min (wait ${status.interval_minutes} + ON ${status.on_minutes})`;
+    if (status.error) {
+      statusEl.classList.remove("hidden");
+      statusEl.innerText = status.error;
+    } else {
+      statusEl.classList.add("hidden");
+      statusEl.innerText = "";
+    }
   } else if (status.error) {
+    statusEl.classList.remove("hidden");
     statusEl.innerText = status.error;
   } else {
-    statusEl.innerText = "Set wait & ON, then power on";
+    statusEl.classList.add("hidden");
+    statusEl.innerText = "";
   }
 }
 
@@ -111,7 +121,7 @@ export function initPlugSchedule() {
 
   function syncCountdownFromStatus(status) {
     lastStatus = status;
-    countdownSeconds = status.seconds_until_activation;
+    countdownSeconds = status.seconds_until_change;
     if (interval && document.activeElement !== interval) {
       interval.value = String(status.interval_minutes);
     }
@@ -120,7 +130,7 @@ export function initPlugSchedule() {
     }
     applyPanelState(panel, {
       ...status,
-      seconds_until_activation: countdownSeconds,
+      seconds_until_change: countdownSeconds,
     });
   }
 
@@ -128,10 +138,22 @@ export function initPlugSchedule() {
     if (!lastStatus?.enabled || countdownSeconds == null) {
       return;
     }
-    countdownSeconds = Math.max(0, countdownSeconds - 1);
+    if (countdownSeconds <= 0) {
+      const enteringOnPhase = !lastStatus.in_on_phase;
+      lastStatus = {
+        ...lastStatus,
+        in_on_phase: enteringOnPhase,
+        plug_on: enteringOnPhase,
+      };
+      countdownSeconds = enteringOnPhase
+        ? lastStatus.on_minutes * 60
+        : lastStatus.interval_minutes * 60;
+    } else {
+      countdownSeconds -= 1;
+    }
     applyPanelState(panel, {
       ...lastStatus,
-      seconds_until_activation: countdownSeconds,
+      seconds_until_change: countdownSeconds,
     });
   }
 
@@ -176,7 +198,7 @@ export function initPlugSchedule() {
       if (lastStatus) {
         applyPanelState(panel, {
           ...lastStatus,
-          seconds_until_activation: countdownSeconds,
+          seconds_until_change: countdownSeconds,
         });
       }
     }
