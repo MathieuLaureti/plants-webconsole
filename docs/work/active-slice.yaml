@@ -6,3 +6,13 @@ slices:
     issue: 1
     branch: refactor/server-modular-layout
     status: in_progress
+  - id: kp125m-jwt-plug
+    title: KP125M plug, JWT auth, console refactor, LAN upload hardening
+    issue: 2
+    branch: feat/kp125m-jwt-plug
+    status: in_progress
+  - id: plug-pulse-schedule
+    title: Kasa plug pulse schedule (interval + on duration)
+    issue: 3
+    branch: feat/plug-pulse-schedule
+    status: in_progress
