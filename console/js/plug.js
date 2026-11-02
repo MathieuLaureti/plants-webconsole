@@ -68,6 +68,7 @@ export function initPlugSchedule() {
   const formError = document.getElementById("plug_form_error");
   const simplePanel = document.getElementById("plug_form_simple");
   const advancedPanel = document.getElementById("plug_form_advanced");
+  const staticPanel = document.getElementById("plug_form_static");
   const timeList = document.getElementById("plug_time_list");
   const timeAddBtn = document.getElementById("plug_time_add");
   const cancelBtn = document.getElementById("plug_form_cancel");
@@ -140,7 +141,13 @@ export function initPlugSchedule() {
 
     setIndicatorLight(indicator, Boolean(lastRuntime.plug_on));
     const countdown = formatCountdown(countdownSeconds);
-    if (lastRuntime.in_on_phase) {
+    if (lastRuntime.schedule_type === "static") {
+      if (lastRuntime.in_on_phase) {
+        countdownEl.innerText = `ON until ${countdown}`;
+      } else {
+        countdownEl.innerText = `Activates in ${countdown}`;
+      }
+    } else if (lastRuntime.in_on_phase) {
       countdownEl.innerText = `ON for ${countdown}`;
     } else {
       countdownEl.innerText = `Next pulse in ${countdown}`;
@@ -191,9 +198,9 @@ export function initPlugSchedule() {
   }
 
   function setMode(mode) {
-    const isSimple = mode === "simple";
-    simplePanel.classList.toggle("hidden", !isSimple);
-    advancedPanel.classList.toggle("hidden", isSimple);
+    simplePanel.classList.toggle("hidden", mode !== "simple");
+    advancedPanel.classList.toggle("hidden", mode !== "advanced");
+    staticPanel.classList.toggle("hidden", mode !== "static");
     form.querySelectorAll('input[name="plug_form_mode"]').forEach((el) => {
       el.checked = el.value === mode;
     });
@@ -228,6 +235,23 @@ export function initPlugSchedule() {
     };
   }
 
+  function readStaticSchedule() {
+    return {
+      activate_time: timeInputToHhmm(document.getElementById("plug_static_activate").value),
+      deactivate_time: timeInputToHhmm(document.getElementById("plug_static_deactivate").value),
+    };
+  }
+
+  function readScheduleForMode(mode) {
+    if (mode === "simple") {
+      return readSimpleSchedule();
+    }
+    if (mode === "advanced") {
+      return readAdvancedSchedule();
+    }
+    return readStaticSchedule();
+  }
+
   function openModal({ plug = null } = {}) {
     editingId = plug ? plug.id : null;
     modalTitle.innerText = plug ? "Edit plug" : "New plug";
@@ -248,11 +272,18 @@ export function initPlugSchedule() {
       document.getElementById("plug_simple_day_count").value = schedule.day_pulse_count ?? 14;
       document.getElementById("plug_simple_night_count").value = schedule.night_pulse_count ?? 4;
       document.getElementById("plug_simple_pulse").value = schedule.pulse_seconds ?? 60;
-    } else {
+    } else if (mode === "advanced") {
       document.getElementById("plug_advanced_pulse").value = schedule.pulse_seconds ?? 60;
       timeList.innerHTML = "";
       const times = schedule.times?.length ? schedule.times : ["08:00", "12:00"];
       times.forEach((t) => addTimeRow(hhmmToTimeInput(t)));
+    } else {
+      document.getElementById("plug_static_activate").value = hhmmToTimeInput(
+        schedule.activate_time || "07:00"
+      );
+      document.getElementById("plug_static_deactivate").value = hhmmToTimeInput(
+        schedule.deactivate_time || "20:00"
+      );
     }
     backdrop.classList.remove("hidden");
   }
@@ -315,7 +346,7 @@ export function initPlugSchedule() {
       title: document.getElementById("plug_form_title").value.trim(),
       description: document.getElementById("plug_form_description").value.trim() || null,
       schedule_type: mode,
-      schedule: mode === "simple" ? readSimpleSchedule() : readAdvancedSchedule(),
+      schedule: readScheduleForMode(mode),
     };
     try {
       if (editingId) {

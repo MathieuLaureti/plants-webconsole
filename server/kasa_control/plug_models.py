@@ -35,11 +35,21 @@ class AdvancedSchedule(BaseModel):
         return [_validate_hhmm(v) for v in values]
 
 
+class StaticSchedule(BaseModel):
+    activate_time: str
+    deactivate_time: str
+
+    @field_validator("activate_time", "deactivate_time")
+    @classmethod
+    def check_time(cls, value: str) -> str:
+        return _validate_hhmm(value)
+
+
 class PlugCreate(BaseModel):
     host: str = Field(min_length=1, max_length=253)
     title: str = Field(min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=2000)
-    schedule_type: Literal["simple", "advanced"]
+    schedule_type: Literal["simple", "advanced", "static"]
     schedule: dict[str, Any]
 
     @field_validator("host")
@@ -52,7 +62,7 @@ class PlugUpdate(BaseModel):
     host: str | None = Field(default=None, min_length=1, max_length=253)
     title: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=2000)
-    schedule_type: Literal["simple", "advanced"] | None = None
+    schedule_type: Literal["simple", "advanced", "static"] | None = None
     schedule: dict[str, Any] | None = None
 
 
@@ -62,7 +72,9 @@ class ScheduleEnabledUpdate(BaseModel):
 
 def validate_schedule_for_type(
     schedule_type: str, schedule: dict
-) -> SimpleSchedule | AdvancedSchedule:
+) -> SimpleSchedule | AdvancedSchedule | StaticSchedule:
     if schedule_type == "simple":
         return SimpleSchedule.model_validate(schedule)
-    return AdvancedSchedule.model_validate(schedule)
+    if schedule_type == "advanced":
+        return AdvancedSchedule.model_validate(schedule)
+    return StaticSchedule.model_validate(schedule)

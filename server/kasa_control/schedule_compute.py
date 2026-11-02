@@ -7,7 +7,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from kasa_control.plug_models import AdvancedSchedule, SimpleSchedule
+from kasa_control.plug_models import AdvancedSchedule, SimpleSchedule, StaticSchedule
 
 
 def get_tz() -> ZoneInfo:
@@ -37,10 +37,18 @@ def _window_len_seconds(start_hhmm: str, end_hhmm: str) -> int:
 
 
 def validate_schedule_capacity(
-    schedule_type: str, schedule: SimpleSchedule | AdvancedSchedule
+    schedule_type: str,
+    schedule: SimpleSchedule | AdvancedSchedule | StaticSchedule,
 ) -> str | None:
     if schedule_type == "advanced":
         assert isinstance(schedule, AdvancedSchedule)
+        return None
+    if schedule_type == "static":
+        assert isinstance(schedule, StaticSchedule)
+        if _time_to_seconds(schedule.activate_time) >= _time_to_seconds(
+            schedule.deactivate_time
+        ):
+            return "activate_time must be before deactivate_time on the same day"
         return None
     assert isinstance(schedule, SimpleSchedule)
     day_len = _window_len_seconds(schedule.morning_time, schedule.night_time)
@@ -94,6 +102,16 @@ def advanced_windows_for_date(
     return windows
 
 
+def static_windows_for_date(
+    schedule: StaticSchedule, day: date, tz: ZoneInfo
+) -> list[tuple[datetime, datetime]]:
+    start = _at_local(day, schedule.activate_time, tz)
+    end = _at_local(day, schedule.deactivate_time, tz)
+    if end <= start:
+        return []
+    return [(start, end)]
+
+
 def collect_windows(
     schedule_type: str,
     schedule: dict[str, Any],
@@ -106,10 +124,14 @@ def collect_windows(
         model = SimpleSchedule.model_validate(schedule)
         for day in days:
             windows.extend(simple_windows_for_date(model, day, tz))
-    else:
+    elif schedule_type == "advanced":
         model = AdvancedSchedule.model_validate(schedule)
         for day in days:
             windows.extend(advanced_windows_for_date(model, day, tz))
+    else:
+        model = StaticSchedule.model_validate(schedule)
+        for day in days:
+            windows.extend(static_windows_for_date(model, day, tz))
     return sorted(windows, key=lambda w: w[0])
 
 

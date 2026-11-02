@@ -21,3 +21,8 @@ slices:
     issue: 5
     branch: feat/multi-plug-profiles
     status: in_progress
+  - id: plug-static-schedule
+    title: Static daily activate/deactivate schedule mode
+    issue: 7
+    branch: feat/multi-plug-profiles
+    status: in_progress

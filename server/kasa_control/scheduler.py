@@ -68,6 +68,7 @@ async def get_plug_runtime(plug_id: int) -> dict[str, Any]:
         "id": plug_id,
         "configured": configured,
         "schedule_enabled": plug["schedule_enabled"],
+        "schedule_type": plug["schedule_type"],
         "plug_on": plug_on,
         "in_on_phase": schedule_rt["in_on_phase"] if plug["schedule_enabled"] else False,
         "seconds_until_change": schedule_rt["seconds_until_change"]

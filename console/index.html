@@ -140,11 +140,14 @@
                     class="w-full mb-3 bg-bg-light border border-border rounded-lg p-2 text-text text-sm" />
                 <fieldset class="mb-3 border border-border rounded-lg p-2">
                     <legend class="text-text-muted text-sm px-1">Schedule mode</legend>
-                    <label class="inline-flex items-center mr-4 text-text text-sm">
+                    <label class="inline-flex items-center mr-3 text-text text-sm">
                         <input type="radio" name="plug_form_mode" value="simple" checked class="mr-1" /> Simple
                     </label>
-                    <label class="inline-flex items-center text-text text-sm">
+                    <label class="inline-flex items-center mr-3 text-text text-sm">
                         <input type="radio" name="plug_form_mode" value="advanced" class="mr-1" /> Advanced
+                    </label>
+                    <label class="inline-flex items-center text-text text-sm">
+                        <input type="radio" name="plug_form_mode" value="static" class="mr-1" /> Static
                     </label>
                 </fieldset>
                 <div id="plug_form_simple" class="space-y-2 text-sm text-text-muted mb-3">
@@ -171,6 +174,15 @@
                         <button id="plug_time_add" type="button" class="text-text border border-border rounded px-2 py-0.5 text-xs">+ time</button>
                     </div>
                     <ul id="plug_time_list" class="space-y-1"></ul>
+                </div>
+                <div id="plug_form_static" class="hidden space-y-2 text-sm text-text-muted mb-3">
+                    <p class="text-xs">Power ON daily from activate until deactivate (same day).</p>
+                    <div class="flex gap-2">
+                        <label class="flex-1">Activate<input id="plug_static_activate" type="time" value="07:00"
+                            class="w-full mt-1 bg-bg-light border border-border rounded-lg p-1 text-text" /></label>
+                        <label class="flex-1">Deactivate<input id="plug_static_deactivate" type="time" value="20:00"
+                            class="w-full mt-1 bg-bg-light border border-border rounded-lg p-1 text-text" /></label>
+                    </div>
                 </div>
                 <p id="plug_form_error" class="hidden text-danger text-sm mb-2"></p>
                 <div class="flex gap-2">
