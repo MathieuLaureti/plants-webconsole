@@ -8,14 +8,28 @@ import {
 
 const STORAGE_KEY = "plug_selected_id";
 
-function formatCountdown(totalSeconds) {
+function formatEventTime(totalSeconds) {
   if (totalSeconds == null || Number.isNaN(totalSeconds)) {
     return "—";
   }
-  const s = Math.max(0, Math.floor(totalSeconds));
-  const mins = Math.floor(s / 60);
-  const secs = s % 60;
-  return `${mins}:${String(secs).padStart(2, "0")}`;
+  const end = new Date(Date.now() + Math.max(0, Math.floor(totalSeconds)) * 1000);
+  return end.toLocaleTimeString("en-GB", {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function formatRuntimeLabel(runtime, secondsUntilChange) {
+  const at = formatEventTime(secondsUntilChange);
+  if (runtime.in_on_phase) {
+    return `ON until ${at}`;
+  }
+  if (runtime.schedule_type === "static") {
+    return `Activates at ${at}`;
+  }
+  return `Next pulse at ${at}`;
 }
 
 function timeInputToHhmm(value) {
@@ -140,18 +154,7 @@ export function initPlugSchedule() {
     }
 
     setIndicatorLight(indicator, Boolean(lastRuntime.plug_on));
-    const countdown = formatCountdown(countdownSeconds);
-    if (lastRuntime.schedule_type === "static") {
-      if (lastRuntime.in_on_phase) {
-        countdownEl.innerText = `ON until ${countdown}`;
-      } else {
-        countdownEl.innerText = `Activates in ${countdown}`;
-      }
-    } else if (lastRuntime.in_on_phase) {
-      countdownEl.innerText = `ON for ${countdown}`;
-    } else {
-      countdownEl.innerText = `Next pulse in ${countdown}`;
-    }
+    countdownEl.innerText = formatRuntimeLabel(lastRuntime, countdownSeconds);
     if (lastRuntime.error) {
       showError(lastRuntime.error);
     } else {
