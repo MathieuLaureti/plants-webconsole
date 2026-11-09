@@ -2,6 +2,7 @@ import { clearToken, getToken, login } from "./auth.js";
 import { startChartPolling } from "./charts.js";
 import { createGalleryController } from "./gallery.js";
 import { initPlugSchedule } from "./plug.js";
+import { initFullscreenViewer } from "./viewer.js";
 
 function showLogin(show) {
   const login = document.getElementById("login_panel");
@@ -38,6 +39,7 @@ function bootApp() {
   startChartPolling();
   createGalleryController().wireControls();
   initPlugSchedule();
+  initFullscreenViewer();
 }
 
 function boot() {

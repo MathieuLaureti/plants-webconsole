@@ -31,3 +31,8 @@ slices:
     issue: 8
     branch: feat/multi-plug-profiles
     status: in_progress
+  - id: fullscreen-image-zoom
+    title: Fullscreen image viewer with pinch-to-zoom and persistent close button
+    issue: 10
+    branch: feat/fullscreen-image-zoom
+    status: in_progress
