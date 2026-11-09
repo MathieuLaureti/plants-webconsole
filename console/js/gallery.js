@@ -15,7 +15,8 @@ export function createGalleryController() {
       const img = document.createElement("img");
       img.id = "last_image_offset";
       img.className =
-        "bg-bg-light border border-border w-full rounded-xl h-full";
+        "rotate-180 bg-bg-light border border-border w-full rounded-xl h-full cursor-pointer hover:opacity-95 transition-opacity";
+      img.title = "Click to view fullscreen";
       displayElement.parentNode.replaceChild(img, displayElement);
       displayElement = img;
     }
@@ -24,6 +25,10 @@ export function createGalleryController() {
       const imageInfo = await fetchLastImage(off, cam);
       document.getElementById("timestamp").innerText = imageInfo.timestamp;
       displayElement.src = imageInfo.url;
+      const fsImage = document.getElementById("fullscreen_image");
+      if (fsImage && imageInfo.url) {
+        fsImage.src = imageInfo.url;
+      }
     } catch (error) {
       console.error("Fetch error:", error.message);
       document.getElementById("timestamp").innerText = "ERROR LOADING IMAGE";

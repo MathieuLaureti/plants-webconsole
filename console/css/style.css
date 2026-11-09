@@ -1,0 +1,20 @@
+/* Fullscreen Image Viewer Styles */
+#fullscreen_modal {
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+#fullscreen_viewport {
+    touch-action: none;
+    cursor: grab;
+}
+
+#fullscreen_viewport.is-dragging {
+    cursor: grabbing;
+}
+
+#fullscreen_transform_layer {
+    will-change: transform;
+}
