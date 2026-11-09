@@ -6,3 +6,28 @@ slices:
     issue: 1
     branch: refactor/server-modular-layout
     status: in_progress
+  - id: kp125m-jwt-plug
+    title: KP125M plug, JWT auth, console refactor, LAN upload hardening
+    issue: 2
+    branch: feat/kp125m-jwt-plug
+    status: in_progress
+  - id: plug-pulse-schedule
+    title: Kasa plug pulse schedule (interval + on duration)
+    issue: 3
+    branch: feat/plug-pulse-schedule
+    status: in_progress
+  - id: multi-plug-profiles
+    title: Multi-plug Kasa profiles and scheduling
+    issue: 5
+    branch: feat/multi-plug-profiles
+    status: in_progress
+  - id: plug-static-schedule
+    title: Static daily activate/deactivate schedule mode
+    issue: 7
+    branch: feat/multi-plug-profiles
+    status: in_progress
+  - id: api-502-docker-pi
+    title: Fix API startup 502 + Pi Docker build improvements
+    issue: 8
+    branch: feat/multi-plug-profiles
+    status: in_progress

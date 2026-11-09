@@ -9,7 +9,7 @@ services:
     ports:
       - 80:80
     volumes:
-    - ./console:/console
+    - ./console:/usr/share/nginx/html:ro
 
   server: 
     container_name: pwc_server
